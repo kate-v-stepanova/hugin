@@ -1,10 +1,12 @@
 import os
 import trello
+import re
 import socket
 
 from flowcells import Flowcell
-from flowcell_status import FlowcellStatus
+from flowcell_status import FlowcellStatus, FC_STATUSES
 
+FC_NAME_RE = r'(\d{6})_([ST-]*\w+\d+)_\d+_([AB]?)([A-Z0-9\-]+)'
 
 class FlowcellMonitor(object):
 
@@ -59,43 +61,61 @@ class FlowcellMonitor(object):
         return self._trello_lists
 
     def update_trello_board(self):
-        trello_cards = self.trello_board.all_cards()
-        for card in trello_cards:
-            card.delete()
-
+        # trello_cards = self.trello_board.all_cards()
+        # for card in trello_cards:
+        #     card.delete()
         for data_folder in self.data_folders:
-            # go throw subfolders
-            for subfolder in os.walk(data_folder): # os.walk returns list of tuples (dirpath, dirnames, filenames)
-                flowcell_path = subfolder[0]
+            self._check_running_flowcells(data_folder)
+            self._check_nosync_flowcells(data_folder)
+            # move deleted flowcells to the archive list
+            self._check_archived_flowcells(data_folder)
 
-                if flowcell_path == data_folder: # skip ./
+    def _check_running_flowcells(self, data_folder):
+        # go throw subfolders
+        subfolders = filter(os.path.isdir, [os.path.join(data_folder, fc_path) for fc_path in os.listdir(data_folder)])
+        for flowcell_path in subfolders:
+            # skip non-flowcell folders
+            if not re.match(FC_NAME_RE, os.path.basename(flowcell_path)):
+                continue
+
+            status = FlowcellStatus(flowcell_path)
+            # depending on the type, return instance of related class (hiseq, hiseqx, miseq, etc)
+            flowcell = Flowcell.init_flowcell(status)
+            flowcell.check_status()
+            # update flowcell on trello board
+            self._update_card(flowcell)
+
+    def _check_nosync_flowcells(self, data_folder):
+        # check nosync folder
+        nosync_folder = os.path.join(data_folder, 'nosync')
+        if os.path.exists(nosync_folder):
+            # move flowcell to nosync list
+            for nosync_flowcell in os.listdir(nosync_folder):
+                flowcell_path = os.path.join(nosync_folder, nosync_flowcell)
+                # skip non-flowcell folders
+                if not re.match(FC_NAME_RE, os.path.basename(flowcell_path)):
                     continue
+                card = self._get_card_by_name(nosync_flowcell)
+                # if the card is not on Trello board, create it
+                if card is None:
+                    status = FlowcellStatus(flowcell_path)
+                    flowcell = Flowcell.init_flowcell(status)
+                    self._update_card(flowcell)
+                else:
+                    self._move_card(card, FC_STATUSES['NOSYNC'])
 
-                status = FlowcellStatus(flowcell_path)
-                # depending on the type, return instance of related class (hiseq, hiseqx, miseq, etc)
-                flowcell = Flowcell.init_flowcell(status)
-                # update flowcell status
-                self._update_card(flowcell)
-
-
-    def _get_trello_card(self, flowcell):
-        for card in self.trello_cards:
-            if flowcell.full_name == card.name:
-                return card
-        return None
-
-
-    def _create_card(self, flowcell):
-        trello_list = self._get_list_by_name(flowcell.list)
-        if not trello_list:
-            raise RuntimeError('List {} cannot be found in TrelloBoard {}'.format(flowcell.status, self.trello_board))
-
-        trello_card = trello_list.add_card(name=flowcell.full_name, desc=flowcell.get_formatted_description())
-        if flowcell.list == flowcell.status.statuses['CHECKSTATUS']:
-            trello_card.comment(flowcell.status.warning)
-
+    def _check_archived_flowcells(self, data_folder):
+        # get cards from the nosync list
+        for card in self._get_cards_by_list(FC_STATUSES['NOSYNC']):
+            localhost = socket.gethostname()
+            # if the flowcell belongs to the server
+            if localhost in card.description:
+                # check if the flowcell has been deleted from the nosync folder
+                if card.name not in os.listdir(os.path.join(data_folder, FC_STATUSES['NOSYNC'].lower())):
+                    self._move_card(card, FC_STATUSES['ARCHIVED'])
 
     def _update_card(self, flowcell):
+        # todo: beautify the method
         trello_card = self._get_trello_card(flowcell) # None
         flowcell_list = self._get_list_by_name(flowcell.list)
 
@@ -105,19 +125,28 @@ class FlowcellMonitor(object):
 
         else:
             # skip aborted list
-            if flowcell.list == flowcell.status.statuses['ABORTED']:
+            if flowcell.list == FC_STATUSES['ABORTED']:
                 return trello_card
 
             # if card is in the wrong list
             if trello_card.list_id != flowcell_list.id:
                 # move card
+                new_card = self._create_card(flowcell)
                 trello_card.delete()
-                return self._create_card(flowcell)
-
+                return new_card
             # if card is in the right list
             else:
                 # todo: checkstatus -> taking too long?
                 return trello_card
+
+    def _create_card(self, flowcell):
+        trello_list = self._get_list_by_name(flowcell.list)
+        if not trello_list:
+            raise RuntimeError('List {} cannot be found in TrelloBoard {}'.format(flowcell.status, self.trello_board))
+
+        trello_card = trello_list.add_card(name=flowcell.full_name, desc=flowcell.get_formatted_description())
+        if flowcell.list == FC_STATUSES['CHECKSTATUS']:
+            trello_card.comment(flowcell.status.warning)
 
     def _get_list_by_name(self, list_name):
         for item in self.trello_lists:
@@ -125,3 +154,27 @@ class FlowcellMonitor(object):
                 return item
         return None
 
+
+    def _get_cards_by_list(self, list_name):
+        trello_list = self._get_list_by_name(list_name)
+        result = []
+        for card in self.trello_cards:
+            if card.list_id == trello_list.id:
+                result.append(card)
+        return result
+
+    def _get_card_by_name(self, card_name):
+        for card in self.trello_cards:
+            if card.name == card_name:
+                return card
+
+    def _move_card(self, card, list_name):
+        new_list = self._get_list_by_name(list_name)
+        new_list.add_card(name=card.name, desc=card.description)
+        card.delete()
+
+    def _get_trello_card(self, flowcell):
+        for card in self.trello_cards:
+            if flowcell.full_name == card.name:
+                return card
+        return None

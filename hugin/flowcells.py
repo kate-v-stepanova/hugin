@@ -2,7 +2,22 @@ import os
 import socket
 import datetime
 
-from flowcell_parser.classes import RunParametersParser, RunInfoParser
+from flowcell_parser.classes import RunParametersParser, RunInfoParser, CycleTimesParser
+
+from hugin.flowcell_status import FC_STATUSES
+
+CYCLE_DURATION = {
+    'RapidRun'          : datetime.timedelta(minutes=12),
+    'HighOutput'        : datetime.timedelta(minutes=100),
+    'RapidHighOutput'   : datetime.timedelta(minutes=43),
+    'MiSeq'             : datetime.timedelta(minutes=6),
+    'HiSeqX'            : datetime.timedelta(minutes=10),
+}
+
+DURATIONS = {
+    'DEMULTIPLEXING'    : datetime.timedelta(hours=4),
+    'TRANSFERING'       : datetime.timedelta(hours=12)
+}
 
 class Flowcell(object):
     def __init__(self, status):
@@ -11,6 +26,7 @@ class Flowcell(object):
         self._id = None
         self._run_parameters = None
         self._run_info = None
+        self._cycle_times = None
 
     @property
     def status(self):
@@ -49,6 +65,10 @@ class Flowcell(object):
                 raise RuntimeError('runParameters.xml cannot be found in {}'.format(self.path))
             self._run_parameters = RunParametersParser(run_parameters_path).data['RunParameters']
         return  self._run_parameters
+
+    @property
+    def cycle_time(self):
+        raise NotImplementedError('Flowcell.cycle_times must be implemented in {}'.format(self.__class__.__name__))
 
     @property
     def name(self):
@@ -164,6 +184,72 @@ class HiseqXFlowcell(Flowcell):
         # todo: returns the wrong name
         return self.run_info['Flowcell']
 
+
+
+    def _check_sequencing(self):
+        # todo: return warning message, but not True/False
+        if self.status.status == FC_STATUSES['SEQUENCING']:
+
+            if self.cycle_times:
+                sum_duration = datetime.timedelta(0)
+                for cycle in self.cycle_times:
+                    duration = cycle['end'] - cycle['start']
+                    sum_duration += duration
+
+
+                if len(self.cycle_times) < 10:
+                    # todo: depending on RunMode
+                    average_duration = CYCLE_DURATION['HiSeqX']
+                else:
+                    average_duration = sum_duration / len(self.cycle_times)
+
+                number_of_cycles = 0
+                for read in self.run_info['Reads']:
+                    number_of_cycles += int(read['NumCycles'])
+
+                # sum_duration = average_duration * number_of_cycles
+
+                # todo: the difference between the last record from cycle_times and datetime.now compare with average duration
+                current_time = datetime.datetime.now()
+
+                last_cycle = self.cycle_times[-1]
+                # if cycle has not finished yet, take start time
+                last_change = last_cycle['end'] or last_cycle['start']
+                current_duration = current_time - last_change
+                if current_duration > average_duration + datetime.timedelta(hours=1):
+                    self._warning = "Cycle {} lasts too long. Flowcell status: {}".format(last_cycle['cycle_number'], 'Sequencing')
+                    return self._warning
+                else:
+                    return None
+            else:
+                current_time = datetime.datetime.now()
+                # todo: compare with CYCLE_DURATION
+                # todo: how to define the last change?
+                raise NotImplementedError('CycleTimes.txt is not present. Extend {}.check_status()'.format(self.__class__.__name__))
+
+
+    def _check_demultiplexing(self):
+        if self.status.status == FC_STATUSES['DEMULTIPLEXING']:
+            os.path.getmtime('path')
+            # todo: check when demux foler was created
+            duration = DURATIONS['DEMULTIPLEXING']
+            return False
+        elif self.status.status == FC_STATUSES['TRANFERRING']:
+            # todo: check when transfering has started
+            duration = DURATIONS['TRANSFERING']
+            return False
+        else:
+            return True
+
+
+    @property
+    def cycle_times(self):
+        if self._cycle_times is None:
+            cycle_times_path = os.path.join(self.path, 'CycleTimes.txt')
+            if os.path.exists(cycle_times_path):
+                # todo: CycleTimesParser fails when no file found
+                self._cycle_times = CycleTimesParser(cycle_times_path).cycles
+        return self._cycle_times
 
 # class HiseqRun(Run):
 #     def __init__(self, flowcell_dir):
