@@ -114,7 +114,8 @@ class FlowcellMonitor(object):
                     flowcell = Flowcell.init_flowcell(status)
                     self._update_card(flowcell)
                 else:
-                    card.change_list(self._get_list_by_name(FC_STATUSES['NOSYNC']))
+                    nosync_list = self._get_list_by_name(FC_STATUSES['NOSYNC'])
+                    card.change_list(nosync_list.id)
 
     def _check_archived_flowcells(self, data_folder):
         # if nosync folder exists
@@ -126,8 +127,8 @@ class FlowcellMonitor(object):
                 if localhost in card.description:
                     # check if the flowcell has been deleted from the nosync folder
                     if card.name not in os.listdir(os.path.join(data_folder, FC_STATUSES['NOSYNC'].lower())):
-                        # todo: check if change_list(list) or change_list(list.id)
-                        card.change_list(self._get_list_by_name(FC_STATUSES['ARCHIVED']))
+                        archived_list = self._get_list_by_name(FC_STATUSES['ARCHIVED'])
+                        card.change_list(archived_list.id)
 
     def _update_card(self, flowcell):
         # todo: beautify the method
