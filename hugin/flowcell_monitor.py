@@ -55,9 +55,14 @@ class FlowcellMonitor(object):
     @property
     def data_folders(self):
         if not self._data_folders:
-            self._data_folders = self.config.get('data_folders')
-            if self._data_folders is None:
-                raise RuntimeError("'data_folders' must be in config file")
+            self._data_folders = []
+            for folder in self.config.get('data_folders', []):
+                if os.path.exists(folder):
+                    self._data_folders.append(folder)
+                else:
+                    print "WARNING: data_folder {} does not exist, but specified in the config file".format(folder)
+            if self.config.get('data_folders') is None:
+                raise RuntimeError("'data_folders' must be specified in the config file")
         return self._data_folders
 
     @property

@@ -85,9 +85,9 @@ class Flowcell(object):
             if "HiSeq X" in runtype:
                 return HiseqXFlowcell(status)
             elif "MiSeq" in runtype:
-                return MiseqRun(status)
+                return MiSeq(status)
             elif "HiSeq" in runtype or "TruSeq" in runtype:
-                return HiseqRun(status)
+                return HiSeq(status)
             else:
                 raise RuntimeError("Unrecognized runtype {} of run {}. Someone as likely bought a new sequencer without telling it to the bioinfo team".format(runtype, flowcell_dir))
 
