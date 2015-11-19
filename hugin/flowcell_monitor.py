@@ -3,7 +3,7 @@ import re
 import socket
 
 import trello
-from hugin.flowcells import Flowcell
+from hugin.flowcells.base_flowcell import BaseFlowcell
 from flowcell_status import FlowcellStatus, FC_STATUSES
 
 FC_NAME_RE = r'(\d{6})_([ST-]*\w+\d+)_\d+_([AB]?)([A-Z0-9\-]+)'
@@ -94,7 +94,7 @@ class FlowcellMonitor(object):
 
             status = FlowcellStatus(flowcell_path)
             # depending on the type, return instance of related class (hiseq, hiseqx, miseq, etc)
-            flowcell = Flowcell.init_flowcell(status)
+            flowcell = BaseFlowcell.init_flowcell(status)
             if flowcell.check_status():
                 # todo: add comment
                 # todo: if comment has been added
@@ -116,7 +116,7 @@ class FlowcellMonitor(object):
                 # if the card is not on Trello board, create it
                 if card is None:
                     status = FlowcellStatus(flowcell_path)
-                    flowcell = Flowcell.init_flowcell(status)
+                    flowcell = BaseFlowcell.init_flowcell(status)
                     self._update_card(flowcell)
                 else:
                     nosync_list = self._get_list_by_name(FC_STATUSES['NOSYNC'])
