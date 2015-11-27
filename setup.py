@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
-import sys
 import os
-import glob
 
 
 try:
@@ -20,11 +18,17 @@ except IOError:
 
 setup(name = "hugin",
       version = "0.1",
-      author = "Pontus Larsson",
-      author_email = "pontus.larsson@scilifelab.se",
+      author = "Kate S.",
+      author_email = "ekaterina.stepanova@scilifelab.se",
       description = "A system for monitoring sequencing and analysis status at SciLifeLab",
       license = "MIT",
-      scripts = glob.glob('scripts/*.py'),
+      entry_points={
+            'console_scripts': ['hugin = cli:cli'],
+            'hugin.subcommands': [
+                'monitor_flowcells=monitor_flowcells.cli:monitor_flowcells',
+                # 'server_status = taca.server_status.cli:server_status',
+            ]
+      },
       install_requires = install_requires,
       dependency_links = dependency_links,
       packages=find_packages(exclude=['tests']),
