@@ -17,8 +17,8 @@ class TrelloBoard(object):
 			try:
 				client = trello.TrelloClient(api_key=api_key, token=token, api_secret=api_secret)
 				self._trello_board  = client.get_board(board_id)
-			except Exception, e:
-				logging.error(e.message)
+			except Exception as e:
+				logging.error(e)
 				logging.error("Can't connect to the board: {}".format(board_id))
 				logging.debug("Trello configuration: {}".format(trello_args))
 				raise e

@@ -73,8 +73,7 @@ class FlowcellMonitor(object):
 					flowcell_path = os.path.join(nosync_folder, flowcell_dir)
 					# skip non-flowcell folders
 					if not re.match(FC_NAME_RE, os.path.basename(flowcell_path)):
-						print "Flowcell name doesn't match regex: {}".format(flowcell_path)
-						# logging.warning("Flowcell name doesn't match regex: {}".format(flowcell_path))
+						logging.warning("Flowcell name doesn't match regex: {}".format(flowcell_path))
 						continue
 					flowcell = BaseFlowcell.init_flowcell(flowcell_path)
 					flowcells.append(flowcell)
