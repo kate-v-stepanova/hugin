@@ -4,19 +4,6 @@ import socket
 
 from monitor_flowcells.flowcells.base_flowcell import FC_STATUSES
 
-COLORS = [
-	'red',
-	'blue',
-	'green',
-	'yellow',
-	'orange',
-	'purple',
-	'lime',
-	'pink',
-	'sky',
-	'black'
-]
-
 class TrelloBoard(object):
 	""" Wrapper class to work with Trello objects
 	"""
@@ -62,15 +49,20 @@ class TrelloBoard(object):
 
 	def update(self, flowcells):
 		for flowcell in flowcells:
-			import pdb
-			pdb.set_trace()
-			card = self.get_card_by_name(flowcell.name) or self.trello_board.create_card(name=flowcell.name, desc=flowcell.description)
+			card = self.get_card_by_name(flowcell.name) or self.create_card(flowcell)
 			if flowcell.due_date:
 				card.set_due(flowcell.due_date)
 			self.move_card(card, flowcell.status)
 			self.add_label(card)
+			import pdb
+			pdb.set_trace()
 			if flowcell.check_status:
 				card.comment(flowcell.check_status)
+
+	def create_card(self, flowcell):
+		trello_list = self.get_list_by_name(flowcell.status)
+		trello_card = trello_list.add_card(name=flowcell.name, desc=flowcell.description)
+		return trello_card
 
 	def archive_nosync_cards(self, nosync_flowcells):
 		nosync_cards = self.get_cards_by_list_name(FC_STATUSES['NOSYNC'])
@@ -92,7 +84,7 @@ class TrelloBoard(object):
 		# if label exists
 		if label is not None:
 			# add label if it's not on the card, otherwise do nothing
-			if label.name not in [label.name for label in card.labels]:
+			if label.id not in card.label_ids:
 				card.add_label(label)
 		else:
 			# if doesn't exist, create and add to the card
@@ -108,23 +100,23 @@ class TrelloBoard(object):
 
 	def _next_color(self):
 		labels = self.trello_board.get_labels()
-		colors = [label.color for label in labels] if labels else []
-		# if all colors are used take the first one
-		if colors == COLORS:
-			return COLORS[0]
+		all_colors = [label.color for label in labels]
+		used_colors = [label.color if label.name else '' for label in labels]
 
-		# if not all the colors are used, take the one which is not used
-		elif set(colors) != set(COLORS):
-			for color in COLORS:
-				if color not in colors:
+		if used_colors == all_colors:
+			return all_colors[0]
+
+		elif set(used_colors) != set(all_colors):
+			for color in all_colors:
+				if color not in used_colors:
 					return color
 
-		else: # set(colors) == set(COLORS):
-			# otherwise take the color which is used the least
-			color_groups = {} # how many times each color has been used already
-			for color in COLORS:
-				color_groups[color] = colors.count(color)
+		else:
+			color_groups = {}
+			for color in all_colors:
+				color_groups[color] = all_colors.count(color)
 
-			for color, count in color_groups:
+			for color in color_groups:
+				count = color_groups[color]
 				if count == min(color_groups.values()):
 					return color

@@ -14,14 +14,17 @@ def load_yaml_config(config_file):
     :raises IOError: If the config file cannot be opened.
     """
     if type(config_file) is file:
-        CONFIG.update(yaml.load(config_file) or {})
+        content = yaml.load(config_file) or {}
+        content['config_path'] = config_file.name
+        CONFIG.update(content)
         return CONFIG
     else:
         try:
             with open(config_file, 'r') as f:
                 content = yaml.load(f)
+                content['config_path'] = config_file
                 CONFIG.update(content)
-                return content
+                return CONFIG
         except IOError as e:
             e.message = "Could not open configuration file \"{}\".".format(config_file)
             raise e

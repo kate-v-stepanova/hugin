@@ -1,11 +1,18 @@
 import datetime
+import os
+import logging
+
+from flowcell_parser.classes import SampleSheetParser
+
 from monitor_flowcells.flowcells.base_flowcell import BaseFlowcell
 from monitor_flowcells.flowcells.base_flowcell import CYCLE_DURATION
+
+from utils.config.config import CONFIG as config
 
 class HiseqxFlowcell(BaseFlowcell):
 	@property
 	def chemistry(self):
-		return self.run_parameters['RunParameters']['Setup']['ChemistryVersion']
+		return self.run_parameters['ChemistryVersion']
 
 	@property
 	def short_name(self):
@@ -41,16 +48,8 @@ class HiseqxFlowcell(BaseFlowcell):
 		return result
 
 	@property
-	def chemistry(self):
-		return self.run_info['ChemistryVersion']
-	# 
-	# @property
-	# def cycle_times_start(self):
-	# 	if self.cycle_times:
-	# 		return self.cycle_times
-	# 	
-	# 	
-	#
+	def run_mode(self):
+		return self.run_parameters['RunMode']
 	
 	@property
 	def average_cycle_time(self):
@@ -73,6 +72,12 @@ class HiseqxFlowcell(BaseFlowcell):
 		return None
 
 	@property
+	def last_cycle_number(self):
+		if self.cycle_times:
+			return self.cycle_times[-1]['cycle_number']
+		return None
+
+	@property
 	def first_cycle(self):
 		if self.cycle_times:
 			return self.cycle_times[0]
@@ -81,3 +86,33 @@ class HiseqxFlowcell(BaseFlowcell):
 	@property
 	def number_of_cycles(self):
 		return len(self.cycle_times) if self.cycle_times else None
+
+	@property
+	def projects(self):
+		projects = []
+		for lane in self.sample_sheet:
+			project = lane['Project']
+			if project not in projects:
+				projects.append(project)
+		return projects
+
+
+	@property
+	def sample_sheet(self):
+		if self._sample_sheet is None:
+			path = config.get('sample_sheet_path', {}).get('hiseqx')
+			if path is None:
+				logging.error("ERROR: 'sample_sheet_path' missing in the config file")
+				raise RuntimeError("'sample_sheet_path' missing in the config file: {}".format(config.get('config_path')))
+
+			sample_sheet_path = os.path.join(path, self.name, 'SampleSheet.csv')
+			if os.path.exists(sample_sheet_path):
+				self._sample_sheet = SampleSheetParser(sample_sheet_path).data
+			else:
+				logging.warning("SampleSheet.csv does not exist at {}".format(os.path.join(path, self.name)))
+		return self._sample_sheet
+
+
+	@property
+	def number_of_samples(self):
+		return len(self.sample_sheet)

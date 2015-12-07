@@ -2,6 +2,7 @@ import os
 import datetime
 import logging
 import socket
+from utils.config import config
 
 # from monitor_flowcells.wrappers.run_info import RunInfoWrapper
 # from monitor_flowcells.wrappers.run_parameters import RunParametersWrapper
@@ -89,7 +90,7 @@ class BaseFlowcell(object):
 			run_parameters_path = os.path.join(self.path, 'runParameters.xml')
 			if not os.path.exists(run_parameters_path):
 				raise RuntimeError('runParameters.xml cannot be found in {}'.format(self.path))
-			self._run_parameters = RunParametersParser(run_parameters_path).data
+			self._run_parameters = RunParametersParser(run_parameters_path).data['RunParameters']['Setup']
 		return  self._run_parameters
 
 	@property
@@ -99,20 +100,12 @@ class BaseFlowcell(object):
 			if os.path.exists(cycle_times_path):
 				self._cycle_times = CycleTimesParser(cycle_times_path).cycles
 			else:
-				# todo: logging.warning()
-				print "WARNING: CycleTimes.txt does not exist"
+				logging.warning("CycleTimes.txt does not exist at {}".format(cycle_times_path))
 		return self._cycle_times
 
 	@property
 	def sample_sheet(self):
-		if self._sample_sheet is None:
-			sample_sheet_path = os.path.join(self.path, 'SampleSheet.csv')
-			if os.path.exists(sample_sheet_path):
-				self._sample_sheet = SampleSheetParser(sample_sheet_path).data
-			else:
-				# todo: logging.warning()
-				print "WARNING: SampleSheet.csv does not exist"
-		return self._sample_sheet
+		return NotImplementedError('sample_sheet @property must be implemented in the class {}'.format(self.__class__.__name__))
 
 	@property
 	def name(self):
@@ -127,6 +120,10 @@ class BaseFlowcell(object):
 			elif self.transfering_started and not self.transfering_done:
 				self._status = FC_STATUSES['TRANFERRING']
 
+			elif self.demultiplexing_done and not self.transfering_started:
+				# todo: check status or demultiplexing ?
+				self._status = FC_STATUSES['DEMULTIPLEXING']
+
 			elif self.demultiplexing_started and not self.demultiplexing_done:
 				self._status = FC_STATUSES['DEMULTIPLEXING']
 
@@ -139,17 +136,18 @@ class BaseFlowcell(object):
 					self.sequencing_started, self.sequencing_done, self.demultiplexing_started, self.demultiplexing_done, self.transfering_started, self.transfering_done
 				))
 
-			# use carefully (@property or _variable), to avoid infinite recursion
-			if self.check_status:
-				self._status = FC_STATUSES['CHECKSTATUS']
+		# use carefully (@property or _variable), to avoid infinite recursion
+		if self.check_status:
+			self._status = FC_STATUSES['CHECKSTATUS']
 
 		return self._status
 
 	@property
 	def check_status(self):
+		# warning: call check_status after status, otherwise None.
 		if self._check_status is None:
 			now = datetime.datetime.now()
-			if self.due_date and self.due_date > now:
+			if self.due_date and self.due_date < now:
 				if self._status == FC_STATUSES['DEMULTIPLEXING'] or self._status == FC_STATUSES['TRANFERRING']:
 					self._check_status = "STATUS: {}, started: {}, expected end time: {}, current time: {}".format(
 						self._status, self.transfering_started or self.demultiplexing_started,
@@ -158,7 +156,7 @@ class BaseFlowcell(object):
 				elif self._status == FC_STATUSES['SEQUENCING']:
 					if self.cycle_times:
 						self._check_status = "STATUS: {}, started: {}, expected end time: {}, current time: {}, current cycle: {}".format(
-							self._status, self.sequencing_started, self.sequencing_end_time, now, self.cycle_times.last_cycle
+							self._status, self.sequencing_started, self.sequencing_end_time, now, self.last_cycle_number
 						)
 		return self._check_status
 
@@ -217,12 +215,14 @@ class BaseFlowcell(object):
 
 	@property
 	def due_date(self):
-		if self._status == FC_STATUSES['SEQUENCING']:
-			self._due_date = self.sequencing_end_time
-		elif self._status == FC_STATUSES['DEMULTIPLEXING']:
-			self._due_date = self.demultiplexing_end_time
-		elif self._status == FC_STATUSES['TRANFERRING']:
-			self._due_date = self.transferring_end_time
+		if self._due_date is None:
+			self._due_date = self.transferring_end_time or self.demultiplexing_end_time or self.sequencing_end_time
+		# if self._status == FC_STATUSES['SEQUENCING']:
+		# 	self._due_date = self.sequencing_end_time
+		# elif self._status == FC_STATUSES['DEMULTIPLEXING']:
+		# 	self._due_date = self.demultiplexing_end_time
+		# elif self._status == FC_STATUSES['TRANFERRING']:
+		# 	self._due_date = self.transferring_end_time
 		return self._due_date
 
 	@classmethod
@@ -257,14 +257,14 @@ class BaseFlowcell(object):
 	@property
 	def demultiplexing_end_time(self):
 		if self._demultiplexing_end_time is None:
-			if self.status == FC_STATUSES['DEMULTIPLEXING']:
+			if self.demultiplexing_started is not None:
 				self._demultiplexing_end_time = self.demultiplexing_started + DURATIONS['DEMULTIPLEXING']
 		return self._demultiplexing_end_time
 
 	@property
 	def transferring_end_time(self):
 		if self._transfering_end_time is None:
-			if self.status == FC_STATUSES['TRANFERRING']:
+			if self.transfering_started is not None:
 				self._transfering_end_time = self.transfering_started + DURATIONS['TRANSFERING']
 		return self._transfering_end_time
 
@@ -273,7 +273,7 @@ class BaseFlowcell(object):
 		if self._sequencing_end_time is None:
 			if self.cycle_times is None:
 				start_time = self.sequencing_started
-				run_mode = self.sample_sheet.run_mode
+				run_mode = self.run_mode
 				duration = CYCLE_DURATION[run_mode] * self.number_of_cycles # todo: das ist None
 				self._sequencing_end_time = start_time + duration
 			else:
@@ -281,8 +281,6 @@ class BaseFlowcell(object):
 				start_time = self.first_cycle['start']
 				self._sequencing_end_time = start_time + duration
 		return self._sequencing_end_time
-
-
 
 	@property
 	def description(self):
@@ -298,15 +296,16 @@ class BaseFlowcell(object):
 			else:
 				return "/".join(read for read in list_of_reads)
 
-		description = """\tDate: {date} \n\t \
-		    Flowcell: {flowcell} \n\t \
-		    Instrument: {instrument} \n\t \
-		    Preprocessing server: {localhost} \n\t \
-		    Lanes: {lanes} \n\t \
-		    Tiles: {tiles}\n\t \
-		    Reads: {reads}\n\t \
-		    Index: {index}\n\t \
-		    Chemistry: {chemistry}""".format(
+		description = """\tDate: {date}
+	Flowcell: {flowcell}
+	Instrument: {instrument}
+	Preprocessing server: {localhost}
+	Lanes: {lanes}
+	Tiles: {tiles}
+	Reads: {reads}
+	Index: {index}
+	Chemistry: {chemistry}
+	Projects: {projects}""".format(
                 date=self.date,
                 flowcell=self.name,
                 instrument=self.instrument,
@@ -316,6 +315,7 @@ class BaseFlowcell(object):
                 reads=formatted_reads(self.reads),
                 index=formatted_reads(self.indexes),
                 chemistry=self.chemistry,
+				projects=";".join(project for project in set(self.projects)),
         )
 		return description
 

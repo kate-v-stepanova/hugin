@@ -26,6 +26,7 @@ setup(name = "hugin",
             'console_scripts': ['hugin = cli:cli'],
             'hugin.subcommands': [
                 'monitor_flowcells=monitor_flowcells.cli:monitor_flowcells',
+                'test=tests.cli:test_flowcells',
                 # 'server_status = taca.server_status.cli:server_status',
             ]
       },
