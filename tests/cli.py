@@ -2,7 +2,7 @@ import logging
 
 import click
 from utils.config.config import CONFIG
-from tests.test_flowcell import run_test
+from tests.test_hiseqx import run_test
 
 
 @click.group()
