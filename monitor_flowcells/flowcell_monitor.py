@@ -6,8 +6,6 @@ import socket
 from monitor_flowcells.flowcells.base_flowcell import BaseFlowcell, FC_STATUSES
 from monitor_flowcells.trello_utils.trello_board import TrelloBoard
 
-
-
 FC_NAME_RE = r'(\d{6})_([ST-]*\w+\d+)_\d+_([AB]?)([A-Z0-9\-]+)'
 
 

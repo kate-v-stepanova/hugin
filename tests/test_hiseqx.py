@@ -7,9 +7,11 @@ import datetime
 from monitor_flowcells.flowcells.base_flowcell import BaseFlowcell, FC_STATUSES
 from monitor_flowcells.flowcells.hiseqx import HiseqxFlowcell
 
-DEFAULT_CONFIG = "test_data/config.yaml"
+DEFAULT_CONFIG = "tests/config.yaml"
 
-class TestFlowcells(unittest.TestCase):
+from utils.config.config import CONFIG
+
+class TestHiseqX(unittest.TestCase):
 
     def setUp(self):
         """
@@ -77,7 +79,4 @@ class TestFlowcells(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
-
-def run_test():
     unittest.main()
