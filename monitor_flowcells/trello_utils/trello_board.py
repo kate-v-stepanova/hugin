@@ -54,8 +54,6 @@ class TrelloBoard(object):
 				card.set_due(flowcell.due_date)
 			self.move_card(card, flowcell.status)
 			self.add_label(card)
-			import pdb
-			pdb.set_trace()
 			if flowcell.check_status:
 				card.comment(flowcell.check_status)
 
