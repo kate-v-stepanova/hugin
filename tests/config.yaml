@@ -2,10 +2,10 @@ data_folders:
    - test_data/hiseqx # HiSeqX
 
 sample_sheet_path:
-   hiseq:
-      test_data/sample_sheets/hiseq
    hiseqx:
-      test_data/sample_sheets/hiseqx
+      tests/test_data/sample_sheets/hiseqx
+   hiseq:
+      tests/test_data/sample_sheets/hiseq
    miseq:
       test_data/sample_sheets/miseq
 

@@ -7,9 +7,11 @@ import datetime
 from monitor_flowcells.flowcells.base_flowcell import BaseFlowcell, FC_STATUSES
 from monitor_flowcells.flowcells.hiseqx import HiseqxFlowcell
 
-DEFAULT_CONFIG = "tests/config.yaml"
+from flowcell_parser.classes import SampleSheetParser
 
-from utils.config.config import CONFIG
+# DEFAULT_CONFIG = "tests/config.yaml"
+
+from utils.config.config import CONFIG as config
 
 class TestHiseqX(unittest.TestCase):
 
@@ -17,8 +19,8 @@ class TestHiseqX(unittest.TestCase):
         """
         Create a fake flowcell. Copy files from test data (test data is present in hugin/tests/test_data dir)
         """
-        with open(DEFAULT_CONFIG) as config:
-            self.config = (yaml.load(config) or {})
+        self.config = config
+
         self.original_data_folder = os.path.join('tests' , self.config.get('data_folders')[0])
         self.fake_data_folder     = os.path.join('tests', 'test_data')
         self.original_flowcell = os.path.join(self.original_data_folder , '150424_ST-E00214_0031_BH2WY7CCXX')
@@ -45,10 +47,11 @@ class TestHiseqX(unittest.TestCase):
         self.assertIsNotNone(fc.demultiplexing_started)
         # self.assertEqual(type(fc.demultiplexing_started), type(datetime))
         self.assertIsNotNone(fc.demultiplexing_done)
-        self.assertSetEqual(set([type(datetime.datetime.now())]), set([type(fc.sequencing_started),
-                                                              type(fc.sequencing_done),
-                                                              type(fc.demultiplexing_started),
-                                                              type(fc.demultiplexing_done)]))
+
+        datetime_set = {type(fc.sequencing_started), type(fc.sequencing_done), type(fc.demultiplexing_started),
+                        type(fc.demultiplexing_done)}
+
+        self.assertSetEqual({type(datetime.datetime.now())}, datetime_set)
 
 
     def test_transferring(self):
@@ -73,6 +76,18 @@ class TestHiseqX(unittest.TestCase):
         fc = BaseFlowcell.init_flowcell(self.original_flowcell)
         self.assertEqual(fc.status, FC_STATUSES['CHECKSTATUS'])
         self.assertIsNotNone(fc.check_status)
+
+    def test_sample_sheet_path(self):
+        fc = BaseFlowcell.init_flowcell(self.original_flowcell)
+        sample_sheet = os.path.join(fc.path, 'SampleSheet.csv')
+        sample_sheet_renamed = os.path.join(fc.path, 'SamapleSheet.csv.bckp')
+        os.rename(sample_sheet, sample_sheet_renamed)
+        sample_sheet_path = os.path.join("tests/test_data/sample_sheets/hiseqx", fc.name, 'SampleSheet.csv')
+        sample_sheet_parser = SampleSheetParser(sample_sheet_path)
+        self.assertEqual(fc.sample_sheet, sample_sheet_parser.data)
+
+        os.rename(sample_sheet_renamed, sample_sheet)
+
 
     def tearDown(self):
         shutil.rmtree(self.fake_flowcell, ignore_errors=False)

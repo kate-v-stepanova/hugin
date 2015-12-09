@@ -147,6 +147,7 @@ class BaseFlowcell(object):
 		# warning: call check_status after status, otherwise None.
 		if self._check_status is None:
 			now = datetime.datetime.now()
+			# todo: add additional time
 			if self.due_date and self.due_date < now:
 				if self._status == FC_STATUSES['DEMULTIPLEXING'] or self._status == FC_STATUSES['TRANFERRING']:
 					self._check_status = "STATUS: {}, started: {}, expected end time: {}, current time: {}".format(
@@ -169,6 +170,7 @@ class BaseFlowcell(object):
 	@property
 	def sequencing_done(self):
 		if self._sequencing_done is None:
+			# todo: check how many cycles left
 			# if RTAComplete.txt is present, sequencing is done
 			rta_file = os.path.join(self.path, 'RTAComplete.txt')
 			if os.path.exists(rta_file):
@@ -217,6 +219,7 @@ class BaseFlowcell(object):
 	def due_date(self):
 		if self._due_date is None:
 			self._due_date = self.transferring_end_time or self.demultiplexing_end_time or self.sequencing_end_time
+
 		# if self._status == FC_STATUSES['SEQUENCING']:
 		# 	self._due_date = self.sequencing_end_time
 		# elif self._status == FC_STATUSES['DEMULTIPLEXING']:

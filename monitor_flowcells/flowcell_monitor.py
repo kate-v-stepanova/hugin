@@ -66,8 +66,8 @@ class FlowcellMonitor(object):
 			nosync_folder = os.path.join(data_folder, 'nosync')
 			if os.path.exists(nosync_folder):
 				# move flowcell to nosync list
-				for flowcell_dir in os.listdir(nosync_folder):
-					flowcell_path = os.path.join(nosync_folder, flowcell_dir)
+				for flowcell_name in os.listdir(nosync_folder):
+					flowcell_path = os.path.join(nosync_folder, flowcell_name)
 					# skip non-flowcell folders
 					if not re.match(FC_NAME_RE, os.path.basename(flowcell_path)):
 						logging.warning("Flowcell name doesn't match regex: {}".format(flowcell_path))

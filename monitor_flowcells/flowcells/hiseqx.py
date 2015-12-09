@@ -100,16 +100,22 @@ class HiseqxFlowcell(BaseFlowcell):
 	@property
 	def sample_sheet(self):
 		if self._sample_sheet is None:
-			path = config.get('sample_sheet_path', {}).get('hiseqx')
-			if path is None:
-				logging.error("ERROR: 'sample_sheet_path' missing in the config file")
-				raise RuntimeError("'sample_sheet_path' missing in the config file: {}".format(config.get('config_path')))
-
-			sample_sheet_path = os.path.join(path, self.name, 'SampleSheet.csv')
+			sample_sheet_path = os.path.join(self.path, 'SampleSheet.csv')
 			if os.path.exists(sample_sheet_path):
 				self._sample_sheet = SampleSheetParser(sample_sheet_path).data
 			else:
-				logging.warning("SampleSheet.csv does not exist at {}".format(os.path.join(path, self.name)))
+				logging.warning("SampleSheet.csv does not exist: {}".format(os.path.abspath(sample_sheet_path)))
+				path = config.get('sample_sheet_path', {}).get('hiseqx')
+				if path is None:
+					logging.error("'sample_sheet_path' missing in the config file")
+					raise RuntimeError("'sample_sheet_path' missing in the config file: {}".format(config.get('config_path')))
+				else:
+					sample_sheet_path = os.path.join(path, self.name, 'SampleSheet.csv')
+					if os.path.exists(sample_sheet_path):
+						self._sample_sheet = SampleSheetParser(sample_sheet_path).data
+					else:
+						logging.error("SampleSheet.csv does not exist at {}".format(sample_sheet_path))
+						raise RuntimeError("SampleSheet.csv does not exist at {}".format(sample_sheet_path))
 		return self._sample_sheet
 
 
