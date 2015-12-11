@@ -22,14 +22,18 @@ class TestHiseqX(unittest.TestCase):
         self.config = config
 
         self.original_data_folder = os.path.join('tests' , self.config.get('data_folders')[0])
-        self.fake_data_folder     = os.path.join('tests', 'test_data')
         self.original_flowcell = os.path.join(self.original_data_folder , '150424_ST-E00214_0031_BH2WY7CCXX')
-        self.fake_flowcell     = os.path.join(self.fake_data_folder     , '150424_ST-E00214_0031_BH2WY7CCXX')
-        os.mkdir(self.fake_flowcell)
+        # self.fake_flowcell     = os.path.join(self.fake_data_folder     , '150424_ST-E00214_0031_BH2WY7CCXX')
+
+        # when error during test, tearDown() is not called, so directory has not been deleted
+        # try:
+        #     os.mkdir(self.fake_flowcell)
+        # except:
+        #     pass
 
     def test_path(self):
-        fc = BaseFlowcell(self.fake_flowcell)
-        self.assertEqual(self.fake_flowcell, fc.path)
+        fc = BaseFlowcell(self.original_flowcell)
+        self.assertEqual(self.original_flowcell, fc.path)
 
     def test_run_info_present(self):
         fc = BaseFlowcell(path=self.original_flowcell)
@@ -55,9 +59,21 @@ class TestHiseqX(unittest.TestCase):
 
 
     def test_transferring(self):
-        fc = BaseFlowcell(self.original_flowcell)
+        fc = BaseFlowcell.init_flowcell(self.original_flowcell)
         self.assertIsNotNone(fc.transfering_started)
-        self.assertIsNotNone(fc.transfering_done)
+        # to make sure it's a datetime and nothing else
+
+        transfering = {
+               'hiseqx': {
+                  'url': 'localhost',
+                  'username': 'ekaterinastepanova',
+                  'path': os.path.join(os.path.abspath('tests/test_data/hiseqx')) #)'/Users/ekaterinastepanova/work/hugin/tests/test_data/hiseqx'
+               }
+
+        }
+
+        config.update({'transfering': transfering})
+        self.assertGreater(datetime.datetime.now(), fc.transfering_started)
 
 
     def test_init_flowcell(self):
@@ -88,9 +104,9 @@ class TestHiseqX(unittest.TestCase):
 
         os.rename(sample_sheet_renamed, sample_sheet)
 
-
-    def tearDown(self):
-        shutil.rmtree(self.fake_flowcell, ignore_errors=False)
+    #
+    # def tearDown(self):
+    #     shutil.rmtree(self.fake_flowcell, ignore_errors=False)
 
 
 if __name__ == '__main__':

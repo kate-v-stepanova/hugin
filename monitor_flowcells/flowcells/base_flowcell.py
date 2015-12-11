@@ -2,7 +2,9 @@ import os
 import datetime
 import logging
 import socket
-from utils.config import config
+import subprocess
+
+from utils.config.config import CONFIG as config
 
 # from monitor_flowcells.wrappers.run_info import RunInfoWrapper
 # from monitor_flowcells.wrappers.run_parameters import RunParametersWrapper
@@ -194,18 +196,6 @@ class BaseFlowcell(object):
 					self._demultiplexing_done = datetime.datetime.fromtimestamp(os.path.getmtime(demux_file))
 		return self._demultiplexing_done
 
-	@property
-	def transfering_started(self):
-		if self._transfering_started is None:
-			pass
-			# command = "{ls} {path}".format(path=config['transfering']['path'])
-			# proc = subprocess.Popen(['ssh', '-t', '{}@{}' %(config['user'], server_url), command],
-
-			# transfering_file = os.path.join(self.path, self.transfering_file)
-			# if os.path.exists(transfering_file):
-			#	 self._transfering_started = datetime.datetime.fromtimestamp(os.path.getctime(transfering_file))
-
-		return self._transfering_started
 
 	@property
 	def transfering_done(self):

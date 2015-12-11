@@ -18,3 +18,4 @@ trello:
 
 debug:
    config_file: tests/config.yaml
+

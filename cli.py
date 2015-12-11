@@ -27,6 +27,7 @@ def cli(ctx, config_file, log_level):
 	""" Tool to monitor flowcell statuses and display the flowcells on the Trello board """
 
 	config = conf.load_yaml_config(config_file)
+	config.update({'config_path': config_file})
 
 	log_file = config.get('log', {}).get('file', None)
 	if log_file:

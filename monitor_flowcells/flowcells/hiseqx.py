@@ -1,6 +1,8 @@
 import datetime
+import time
 import os
 import logging
+import subprocess
 
 from flowcell_parser.classes import SampleSheetParser
 
@@ -122,3 +124,44 @@ class HiseqxFlowcell(BaseFlowcell):
 	@property
 	def number_of_samples(self):
 		return len(self.sample_sheet)
+
+	@property
+	def transfering_started(self):
+		# if self._transfering_started is None:
+		# 	transfering= config.get('transfering')
+		# 	if transfering is None:
+		# 		logging.error("'transferring is missing in the config file: {}".format(config['config_path']))
+		# 		raise RuntimeError("'transferring is missing in the config file: {}".format(config['config_path']))
+		# 	hiseq = transfering.get('hiseqx')
+		# 	if hiseq is None:
+		# 		logging.error("'transferring configuration contains no 'hiseq' parameter: {}".format(config['config_path']))
+		# 		raise RuntimeError("'transferring configuration contains no 'hiseq' parameter: {}".format(config['config_path']))
+		# 	url = hiseq.get('url')
+		# 	username = hiseq.get('username')
+		# 	path = hiseq.get('path')
+		# 	if any((url is None, username is None, path is None)):
+		# 		logging.error("config.transfering.hiseq must specify url, username and password. Config file: {}".format(config['config_path']))
+		# 		raise RuntimeError("config.transfering.hiseq must specify url, username and password. Config file: {}".format(config['config_path']))
+		# 	path = os.path.join(path, self.name)
+		#
+		# 	# path = "/home/ekat"
+		# 	exist = "Transfering has been started at: "
+		# 	doesnt = "Transfering has not been started'"
+		# 	command = "python -c \"import os; print '{exists}' + str(os.path.getctime('{path}')) if os.path.exists('{path}') else '{doesnt}\"".format(path=path, exists=exist, doesnt=doesnt)
+		#
+		# 	try:
+		# 		ssh = subprocess.Popen(['ssh', '-t', '{}@{}'.format(username, url), command],
+	     #                   stdout=subprocess.PIPE,
+	     #                   stderr=subprocess.PIPE)
+		# 		result = ssh.communicate()
+		# 		output = result[0]
+		# 		if exist in result[0]:
+		# 			started = float(output.strip().strip(exist))
+		# 		self._transfering_started = datetime.datetime.fromtimestamp(started)
+		# 	except Exception as e:
+		# 		logging.error("Could not connect to ssh: {}@{}".format(username, url))
+		# 		logging.error(e)
+		#
+		# 	# todo: optimize! Now each flowcell connects to ssh to define due_time -> no need if status is sequencing
+
+		return self._transfering_started

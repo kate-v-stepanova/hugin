@@ -8,9 +8,6 @@ from tests.test_hiseqx import TestHiseqX
 from tests.test_hiseq import TestHiseq
 from tests.test_miseq import TestMiseq
 
-
-
-
 @click.command()
 @click.option("--hiseqx", is_flag=True)
 @click.option("--hiseq", is_flag=True)
@@ -24,7 +21,6 @@ from tests.test_miseq import TestMiseq
 def test_flowcells(hiseqx, hiseq, miseq, all, config_file):
 	""" Run unittests with the default config file: tests/config.yaml. To change it, edit tests/test_<fc-type>.py file"""
 	load_yaml_config(config_file)
-
 	from utils.config.config import CONFIG
 
 	if not CONFIG.get('trello', ''):
