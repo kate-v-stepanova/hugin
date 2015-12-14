@@ -222,9 +222,9 @@ class BaseFlowcell(object):
 	def init_flowcell(cls, path):
 		try:
 			parser = RunParametersParser(os.path.join(path, 'runParameters.xml'))
-			# print rp.data
 
 		except OSError:
+			logging.error("Cannot find the runParameters.xml file at {}. This is quite unexpected.".format(path))
 			raise RuntimeError("Cannot find the runParameters.xml file at {}. This is quite unexpected.".format(path))
 		else:
 			try:
@@ -298,7 +298,7 @@ class BaseFlowcell(object):
 	Reads: {reads}
 	Index: {index}
 	Chemistry: {chemistry}
-	Projects: {projects}""".format(
+	Projects: \n\t\t{projects}""".format(
                 date=self.date,
                 flowcell=self.name,
                 instrument=self.instrument,
@@ -308,9 +308,11 @@ class BaseFlowcell(object):
                 reads=formatted_reads(self.reads),
                 index=formatted_reads(self.indexes),
                 chemistry=self.chemistry,
-				projects=";".join(project for project in set(self.projects)),
+				projects=";\n\t\t".join(project for project in set(self.projects)),
         )
 		return description
 
 	def __eq__(self, other):
-		return self.path == other.path
+		return self.name == other.name
+
+

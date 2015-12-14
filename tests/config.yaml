@@ -1,5 +1,6 @@
 data_folders:
-   - test_data/hiseqx # HiSeqX
+   # - test_data/hiseqx # HiSeqX
+   - test_data/hiseq
 
 sample_sheet_path:
    hiseqx:
@@ -15,7 +16,3 @@ trello:
    api_secret: 64fafa5ca6fa0b190c7322b4166b199d0b734775ac6e8e2b9ca0077b3675dd33
    run_tracking_board: FlowCell tracking
    board_id: 7HA64hbq
-
-debug:
-   config_file: tests/config.yaml
-

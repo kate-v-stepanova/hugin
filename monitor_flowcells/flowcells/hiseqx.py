@@ -64,8 +64,7 @@ class HiseqxFlowcell(BaseFlowcell):
 			if len(self.cycle_times) > 10:
 				return sum_duration / len(self.cycle_times)
 
-		# todo: depending on RunMode
-		return CYCLE_DURATION['HiSeqX']
+		return CYCLE_DURATION[self.run_mode]
 
 	@property
 	def last_cycle(self):

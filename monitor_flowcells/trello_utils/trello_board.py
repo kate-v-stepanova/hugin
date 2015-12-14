@@ -50,12 +50,13 @@ class TrelloBoard(object):
 	def update(self, flowcells):
 		for flowcell in flowcells:
 			card = self.get_card_by_name(flowcell.name) or self.create_card(flowcell)
-			if flowcell.due_date:
-				card.set_due(flowcell.due_date)
-			self.move_card(card, flowcell.status)
-			self.add_label(card)
-			if flowcell.check_status:
-				card.comment(flowcell.check_status)
+			if not self.flowcell_aborted(card):
+				if flowcell.due_date:
+					card.set_due(flowcell.due_date)
+				self.move_card(card, flowcell.status)
+				self.add_label(card)
+				if flowcell.check_status:
+					card.comment(flowcell.check_status)
 
 	def create_card(self, flowcell):
 		trello_list = self.get_list_by_name(flowcell.status)
@@ -118,3 +119,9 @@ class TrelloBoard(object):
 				count = color_groups[color]
 				if count == min(color_groups.values()):
 					return color
+
+	def flowcell_aborted(self, card):
+		aborted_list = self.get_list_by_name(FC_STATUSES['ABORTED'])
+		if aborted_list.id == card.list_id:
+			return True
+		return False
