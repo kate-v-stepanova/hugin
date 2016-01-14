@@ -2,3 +2,5 @@ couchdb >= 0.8
 py-trello
 oauth2
 flowcell_parser
+requests
+click

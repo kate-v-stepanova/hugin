@@ -1,0 +1,18 @@
+data_folders:
+   # - test_data/hiseqx # HiSeqX
+   - test_data/hiseq
+
+sample_sheet_path:
+   hiseqx:
+      tests/test_data/sample_sheets/hiseqx
+   hiseq:
+      tests/test_data/sample_sheets/hiseq
+   miseq:
+      test_data/sample_sheets/miseq
+
+trello:
+   api_key: 35c3947807caa06935842db61619a1c3
+   token: 14f8e61dc122ca436806ad3e52cbd9750665b729d6620d7f3218b253116f7310
+   api_secret: 64fafa5ca6fa0b190c7322b4166b199d0b734775ac6e8e2b9ca0077b3675dd33
+   run_tracking_board: FlowCell tracking
+   board_id: 7HA64hbq
