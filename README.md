@@ -3,12 +3,6 @@ hugin
 
 # Monitor flowcells status
 
-### To run hugin:
-run a command `hugin --help`
-
-### To test hugin:
-`hugin test_flowcells --help` (it requires a different config file)
-
 ### To deploy hugin:
 
 1. clone repo into your filesystem: `git clone git@github.com:kate-v-stepanova/hugin.git`
@@ -60,3 +54,13 @@ transfering:
       url: <server-url>
       username: <username>
       path: /path/where/the/data/is/being/transferred
+```
+
+
+### To run hugin:
+run a command `hugin --help`
+
+### To test hugin:
+`hugin --config-file tests/config.yaml test_flowcells --hiseqx`
+(it requires a different config file, which is present in the repo <sub><sup>and contains my passwords - very smart! but otherwise i will forget how to do it</sup></sub>)
+
