@@ -29,7 +29,9 @@ run a command `hugin --help`
 
 1. default location of the config file is: `~/.hugin/config.yaml`, but it can also be stored anywhere else
 2. Config file must contain the following mandatory fields:
-```trello:
+
+```
+trello:
       api_key: <api_key>
       token: <token>
       api_secret: <api_secret>
